@@ -62,7 +62,7 @@ local DamageIndicatorEvent = ReplicatedStorage:WaitForChild("DamageIndicatorEven
 local CoinReceiveSFXEvent  = ReplicatedStorage:WaitForChild("CoinReceiveSFXEvent")
 local DashAbilityEvent = ReplicatedStorage:WaitForChild("DashAbilityEvent")
 
-
+-- hitbox class framework implementation
 local HitboxClass = require(ReplicatedStorage.HitboxClass)
 local HitboxTypes = require(ReplicatedStorage.HitboxClass.Types)
 
@@ -81,10 +81,14 @@ local CFG = {
 	KILL_REWARD        = 5,
 }
 
-local playerData = {}
 
+-- store the recent player who attacked at for each player to later award the attacker
 local lastAttacker = {}
+
+-- vfx for dash ability
 local VFXAttachment = ReplicatedStorage:WaitForChild("VFX"):WaitForChild("DashVFX"):WaitForChild("VFXRootAttachment")
+
+local playerData = {}
 local function getData(player)
 	return playerData[player]
 end
@@ -98,6 +102,7 @@ local function getKills(player)
 	return ls and ls:FindFirstChild("Kills")
 end
 
+-- set ice rink physics
 local iceProps = PhysicalProperties.new(
 	CFG.ICE_FRICTION,
 	0.1,
@@ -121,6 +126,7 @@ for _,i in pairs(MountainFolder:GetChildren()) do
 	end
 end
 
+-- equip given skate accessories to character
 local function equipSkates(character, itemName)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local itemData = ItemRegistry[itemName]
@@ -147,6 +153,7 @@ EquipAccessoryRE.OnServerEvent:Connect(function(player, itemName)
 	equipSkates(player.Character, itemName)
 end)
 
+-- remove equipped skate accessories
 local function removeSkates(character)
 	for _, child in ipairs(character:GetChildren()) do
 		if child:IsA("Accessory") and
@@ -156,6 +163,8 @@ local function removeSkates(character)
 	end
 end
 
+
+-- handle spawn and reset certain stats on death
 local respawning = {}
 
 local function respawnAtLobby(player)
@@ -194,6 +203,7 @@ local function respawnAtLobby(player)
 	end)
 end
 
+-- teleport the character to ice rink and set stats for pvp arena
 local function teleportToRink(player)
 	local data = getData(player)
 	if not data or data.teleportCooldown then return end
@@ -224,6 +234,8 @@ local function teleportToRink(player)
 	equipSkates(player.Character, tostring(player.playerData.equippedItem.Value))
 end
 
+-- set certain stats for ice rink.
+-- handle humanoid.died for rewarding the last attacker.
 function IceRinkServer.onPlayerAdded(player)
 	playerData[player] = {
 		onIce            = false,
@@ -278,6 +290,7 @@ function IceRinkServer.onPlayerAdded(player)
 	end)
 end
 
+-- Portal teleports the players to ice rink
 Portal.Touched:Connect(function(part)
 	local character = part.Parent
 	local player    = Players:GetPlayerFromCharacter(character)
@@ -286,6 +299,7 @@ Portal.Touched:Connect(function(part)
 	end
 end)
 
+-- safety check for characters who might pass hazard under arena
 RunService.Heartbeat:Connect(function()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if respawning[player] then continue end
@@ -304,6 +318,8 @@ end
 
 local AttackEvent = ReplicatedStorage:WaitForChild("AttackEvent")
 
+-- Players who are teleported to the arena can fire this event if they're not stunned. A hitbox is created attached and in front of the character for a small duration covering the attack animation.
+-- If hit is successful, the character who got hit launches towards opposite direction of the character who hit, got stunned and damaged. The lastAttacker property for who got hit becomes the player who hit for later use.
 AttackEvent.OnServerEvent:Connect(function(player, clientFootPos)
 	local hitboxParams = {
 		SizeOrPart = Vector3.new(7, 6, 6),
@@ -364,6 +380,7 @@ AttackEvent.OnServerEvent:Connect(function(player, clientFootPos)
 	newHitbox:Start()
 end)
 
+-- clean-up unnecessary data for server efficiency
 local function onPlayerRemoving(player)
 	playerData[player] = nil
 	respawning[player] = nil
@@ -376,6 +393,8 @@ local function onPlayerRemoving(player)
 		end
 	end
 end
+
+-- Players who are teleported to the arena can fire this event if they're not stunned. If the player is verified for dash, it then fires back to the client and get carried there towards camera's look direction.
 DashAbilityEvent.OnServerEvent:Connect(function(player)
 	local data = getData(player)
 	if not data then
@@ -391,6 +410,8 @@ DashAbilityEvent.OnServerEvent:Connect(function(player)
 		PlayerStateService:SwitchState(player, "Idle")
 	end)
 end)
+
+-- this is a module script gets required from server and its onPlayerAdded method is being called there. thats why i later commented out the below code line.
 
 --Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
