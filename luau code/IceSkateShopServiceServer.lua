@@ -1,3 +1,13 @@
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------- DEAR HIDDEN DEV APPLICATION READER -----------------------------------------------
+-- I shared multiple scripts with you, please read all comments shared and provide feedback on which part you don't
+-- think it shows my understanding of the code, if you think so, so i can focus explaining more on there
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+-- Initialization
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -33,7 +43,9 @@ BuyItemRF.OnServerInvoke = function(player, itemName)
 	return false
 end
 
--- Invokes when a player tries to equip a skate in the shop. It checks if the player has the item and returns the result.
+-- Invokes when a player tries to equip a skate in the shop. It checks if the player has the item and returns the result. The item name is just an id every skate has. Equipped item property is being hold
+-- on server for each player. When a player tries to enter PVP Arena, its character wears the skate pairs matching with the equipped item id and its linear velocity component being adjusted according
+-- to what skates attributes are on client side.
 EquipItemRF.OnServerInvoke = function(player, itemName)
 	if player.playerData.ownedItems:FindFirstChild(itemName) or itemName == "0" then
 		player.playerData.equippedItem.Value = tonumber(itemName)

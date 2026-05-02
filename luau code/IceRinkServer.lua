@@ -1,3 +1,13 @@
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------- DEAR HIDDEN DEV APPLICATION READER -----------------------------------------------
+-- I shared multiple scripts with you, please read all comments shared and provide feedback on which part you don't
+-- think it shows my understanding of the code, if you think so, so i can focus explaining more on there
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+
+-- Initialization
+
 local IceRinkServer = {}
 local PlayerStateService = require(script:WaitForChild("PlayerStateService"))
 
@@ -10,8 +20,9 @@ local ServerStorage     = game:GetService("ServerStorage")
 local MapsFolder        = ServerStorage:WaitForChild("MapsFolder")
 local ItemsFolder       = ServerStorage:WaitForChild("Items")
 
+-- Read every skate pairs and hold them in server memory on load. This is essential because characters wear these skates before entering the arena and we dont want to search and find skate pairs everytime a
+-- character tries to enter the arena.
 local ItemRegistry = {}
-
 for _, itemFolder in ipairs(ItemsFolder:GetChildren()) do
 	if itemFolder:IsA("Folder") then
 		ItemRegistry[itemFolder.Name] = {
@@ -56,7 +67,6 @@ local SkatesRemovedRE    = Remotes:WaitForChild("SkatesRemoved")
 local BumpAttackerRE     = Remotes:WaitForChild("BumpAttacker")
 local BumpVictimRE       = Remotes:WaitForChild("BumpVictim")
 local SetSkateCFGRE      = Remotes:WaitForChild("SetSkateCFG")
-local EquipAccessoryRE   = Remotes:WaitForChild("EquipAccessory")
 local KillFeedEvent      = Remotes:WaitForChild("KillFeedEvent")
 local DamageIndicatorEvent = ReplicatedStorage:WaitForChild("DamageIndicatorEvent")
 local CoinReceiveSFXEvent  = ReplicatedStorage:WaitForChild("CoinReceiveSFXEvent")
@@ -126,7 +136,7 @@ for _,i in pairs(MountainFolder:GetChildren()) do
 	end
 end
 
--- equip given skate accessories to character
+-- equip given skate accessories to character. this is only visual, it has no effect on gameplay
 local function equipSkates(character, itemName)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local itemData = ItemRegistry[itemName]
@@ -149,11 +159,7 @@ local function equipSkates(character, itemName)
 	humanoid:AddAccessory(rightClone)
 end
 
-EquipAccessoryRE.OnServerEvent:Connect(function(player, itemName)
-	equipSkates(player.Character, itemName)
-end)
-
--- remove equipped skate accessories
+-- remove equipped skate accessories. this is only visual, it has no effect on gameplay
 local function removeSkates(character)
 	for _, child in ipairs(character:GetChildren()) do
 		if child:IsA("Accessory") and
@@ -203,7 +209,8 @@ local function respawnAtLobby(player)
 	end)
 end
 
--- teleport the character to ice rink and set stats for pvp arena
+-- teleport the character to ice rink and set stats for pvp arena. flag the player so it can start pvp fight. this is essential to split lobby and pvp arena logic and later will be 
+-- extended to achieve spawn protection.
 local function teleportToRink(player)
 	local data = getData(player)
 	if not data or data.teleportCooldown then return end
@@ -235,7 +242,7 @@ local function teleportToRink(player)
 end
 
 -- set certain stats for ice rink.
--- handle humanoid.died for rewarding the last attacker.
+-- handle humanoid.died for rewarding the last attacker. if a character dies by any means, the last player who attacked is accountable.
 function IceRinkServer.onPlayerAdded(player)
 	playerData[player] = {
 		onIce            = false,
@@ -395,6 +402,8 @@ local function onPlayerRemoving(player)
 end
 
 -- Players who are teleported to the arena can fire this event if they're not stunned. If the player is verified for dash, it then fires back to the client and get carried there towards camera's look direction.
+-- This could be done here in the server but since movement is already synced with proper Network Owner settings i didn't want to exhaust server. Also this way we provide the client instant feedback which is
+-- important for gameplay feel.
 DashAbilityEvent.OnServerEvent:Connect(function(player)
 	local data = getData(player)
 	if not data then
@@ -411,7 +420,7 @@ DashAbilityEvent.OnServerEvent:Connect(function(player)
 	end)
 end)
 
--- this is a module script gets required from server and its onPlayerAdded method is being called there. thats why i later commented out the below code line.
+-- this is a module script gets required from a server script and its onPlayerAdded method is being called there. thats why i later commented out the below code line.
 
 --Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
